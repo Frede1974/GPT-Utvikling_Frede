@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Skrittregistrering</title>
+    <!-- Tailwind CSS via CDN. In production you would build Tailwind locally. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <main class="w-full max-w-xl bg-white shadow-md rounded p-6">
+      <h1 class="text-2xl font-bold mb-4">Registrer dine skritt</h1>
+      <p class="mb-6 text-gray-600">
+        Velg ditt navn og lokasjon, oppgi dato og antall skritt du har gått.
+        Dette skjemaet krever ingen innlogging og du kan korrigere for tidligere
+        dager (men ikke frem i tid). Hvis du legger inn flere verdier for samme
+        dato vil den siste lagres.
+      </p>
+      <form id="stepForm" class="space-y-4" novalidate>
+        <div>
+          <label for="employeeSelect" class="block font-medium text-gray-700">Navn</label>
+          <select id="employeeSelect" class="mt-1 w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500" aria-describedby="employeeHelp">
+            <option value="">Laster ansatte…</option>
+          </select>
+          <p id="employeeHelp" class="text-sm text-gray-500">Velg navnet ditt fra listen.</p>
+        </div>
+        <div>
+          <label for="locationSelect" class="block font-medium text-gray-700">Lokasjon</label>
+          <select id="locationSelect" class="mt-1 w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500" aria-describedby="locationHelp">
+            <option value="">Laster lokasjoner…</option>
+          </select>
+          <p id="locationHelp" class="text-sm text-gray-500">Velg lokasjonen din.</p>
+        </div>
+        <div>
+          <label for="dateInput" class="block font-medium text-gray-700">Dato</label>
+          <input type="date" id="dateInput" class="mt-1 w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500" aria-describedby="dateHelp" />
+          <p id="dateHelp" class="text-sm text-gray-500">Velg datoen skrittene ble gått.</p>
+        </div>
+        <div>
+          <label for="stepsInput" class="block font-medium text-gray-700">Antall skritt</label>
+          <input type="number" id="stepsInput" min="0" class="mt-1 w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500" aria-describedby="stepsHelp" />
+          <p id="stepsHelp" class="text-sm text-gray-500">Oppgi et ikke-negativt heltall.</p>
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+          Lagre registrering
+        </button>
+      </form>
+      <div id="message" class="mt-4 text-sm" role="alert" aria-live="polite"></div>
+      <div class="mt-8 text-center">
+        <a href="/graph.html" class="text-blue-600 hover:underline">Se statistikk</a>
+      </div>
+    </main>
+    <script>
+      // Helper to display messages
+      function showMessage(text, isError) {
+        const msgEl = document.getElementById('message');
+        msgEl.textContent = text;
+        msgEl.className = isError ? 'mt-4 text-red-600' : 'mt-4 text-green-600';
+      }
+      async function loadEmployees() {
+        try {
+          const res = await fetch('/api/employees');
+          const employees = await res.json();
+          const select = document.getElementById('employeeSelect');
+          select.innerHTML = '<option value="">Velg...</option>';
+          employees.forEach(emp => {
+            const opt = document.createElement('option');
+            opt.value = emp.id;
+            opt.textContent = emp.name;
+            select.appendChild(opt);
+          });
+        } catch (e) {
+          showMessage('Kunne ikke laste ansatte', true);
+        }
+      }
+      async function loadLocations() {
+        try {
+          const res = await fetch('/api/locations');
+          const locations = await res.json();
+          const select = document.getElementById('locationSelect');
+          select.innerHTML = '<option value="">Velg...</option>';
+          locations.forEach(loc => {
+            const opt = document.createElement('option');
+            opt.value = loc.id;
+            opt.textContent = loc.name;
+            select.appendChild(opt);
+          });
+        } catch (e) {
+          showMessage('Kunne ikke laste lokasjoner', true);
+        }
+      }
+      document.getElementById('stepForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const employeeId = document.getElementById('employeeSelect').value;
+        const locationId = document.getElementById('locationSelect').value;
+        const date = document.getElementById('dateInput').value;
+        const steps = document.getElementById('stepsInput').value;
+        if (!employeeId || !locationId || !date || steps === '') {
+          showMessage('Fyll ut alle felter', true);
+          return;
+        }
+        try {
+          const res = await fetch('/api/steps', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ employeeId, locationId, date, steps }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showMessage('Registreringen er lagret!', false);
+            // Reset steps field
+            document.getElementById('stepsInput').value = '';
+          } else {
+            showMessage(data.error || 'En feil oppstod', true);
+          }
+        } catch (err) {
+          showMessage('En feil oppstod ved lagring', true);
+        }
+      });
+      // Set default date to today
+      const today = new Date().toISOString().substring(0, 10);
+      document.getElementById('dateInput').value = today;
+      // Load lists on page load
+      loadEmployees();
+      loadLocations();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snitt skritt pr. lokasjon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for rendering the graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body class="bg-gray-50 p-4">
+    <main class="max-w-4xl mx-auto bg-white shadow-md rounded p-6">
+      <h1 class="text-2xl font-bold mb-4">Snitt skritt per lokasjon</h1>
+      <p class="mb-6 text-gray-600">
+        Grafen viser gjennomsnittlig antall skritt per dag for hver lokasjon. Y-aksen er
+        snitt skritt, og X-aksen er dato. Data oppdateres dynamisk ut fra
+        registreringene.
+      </p>
+      <canvas id="stepsChart" aria-label="Snitt skritt per lokasjon" role="img"></canvas>
+      <div class="mt-8 text-center space-x-4">
+        <a href="/" class="text-blue-600 hover:underline">Registrer skritt</a>
+        <a href="/admin.html" class="text-blue-600 hover:underline">Adminportal</a>
+      </div>
+    </main>
+    <script>
+      async function loadAverages() {
+        const res = await fetch('/api/averages');
+        return await res.json();
+      }
+      function groupByLocation(data) {
+        const grouped = {};
+        data.forEach(item => {
+          const date = item.date; // YYYY-MM-DD
+          const location = item.location;
+          const avg = parseFloat(item.average);
+          if (!grouped[location]) grouped[location] = [];
+          grouped[location].push({ date, average: avg });
+        });
+        return grouped;
+      }
+      function getAllDates(grouped) {
+        const datesSet = new Set();
+        Object.values(grouped).forEach(arr => {
+          arr.forEach(item => datesSet.add(item.date));
+        });
+        const dates = Array.from(datesSet);
+        // Sort dates ascending
+        dates.sort((a, b) => new Date(a) - new Date(b));
+        return dates;
+      }
+      function buildDataset(grouped, dates) {
+        const colors = [
+          'rgba(59, 130, 246, 0.7)', // blue
+          'rgba(234, 88, 12, 0.7)', // orange
+          'rgba(16, 185, 129, 0.7)', // green
+          'rgba(244, 63, 94, 0.7)', // red
+          'rgba(124, 58, 237, 0.7)' // purple
+        ];
+        const datasets = [];
+        let colorIdx = 0;
+        Object.keys(grouped).forEach(location => {
+          const dataPoints = dates.map(date => {
+            const entry = grouped[location].find(i => i.date === date);
+            return entry ? entry.average : 0;
+          });
+          const color = colors[colorIdx % colors.length];
+          const dataset = {
+            label: location,
+            data: dataPoints,
+            fill: false,
+            borderColor: color,
+            backgroundColor: color,
+            tension: 0.1
+          };
+          datasets.push(dataset);
+          colorIdx++;
+        });
+        return datasets;
+      }
+      async function buildChart() {
+        const rawData = await loadAverages();
+        const grouped = groupByLocation(rawData);
+        const dates = getAllDates(grouped);
+        const datasets = buildDataset(grouped, dates);
+        const ctx = document.getElementById('stepsChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: dates,
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'nearest',
+              intersect: false
+            },
+            plugins: {
+              legend: {
+                position: 'top'
+              },
+              title: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                display: true,
+                title: {
+                  display: true,
+                  text: 'Dato'
+                }
+              },
+              y: {
+                display: true,
+                title: {
+                  display: true,
+                  text: 'Snitt skritt'
+                },
+                // Let Chart.js automatically determine the min/max
+                beginAtZero: false
+              }
+            }
+          }
+        });
+      }
+      buildChart();
+    </script>
+  </body>
+</html>

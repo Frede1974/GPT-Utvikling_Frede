@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Adminportal – Skrittkonkurranse</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS library for exporting tables to Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Enhancements script for sorting, filtering and export -->
+    <script src="adminEnhancements.js"></script>
+  </head>
+  <body class="bg-gray-50 p-4">
+    <main class="max-w-6xl mx-auto bg-white shadow-md rounded p-6">
+      <h1 class="text-2xl font-bold mb-4">Adminportal</h1>
+      <!-- Login Section -->
+      <div id="loginSection">
+        <p class="mb-4 text-gray-600">Logg inn med din admin-bruker for å administrere ansatte, lokasjoner og skrittregistreringer.</p>
+        <div class="space-y-4 max-w-md">
+          <div>
+            <label for="adminEmail" class="block font-medium text-gray-700">E-post</label>
+            <input type="email" id="adminEmail" class="mt-1 w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+          </div>
+          <div>
+            <label for="adminPassword" class="block font-medium text-gray-700">Passord</label>
+            <input type="password" id="adminPassword" class="mt-1 w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+          </div>
+          <button id="loginButton" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Logg inn</button>
+          <p id="loginError" class="text-red-600"></p>
+        </div>
+      </div>
+      <!-- Dashboard Section -->
+      <div id="dashboard" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-semibold">Administrasjon</h2>
+          <button id="logoutButton" class="bg-gray-600 text-white py-1 px-3 rounded hover:bg-gray-700">Logg ut</button>
+        </div>
+        <!-- Employees management -->
+        <section class="mb-8">
+          <h3 class="text-lg font-semibold mb-2">Ansatte</h3>
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            <input type="text" id="newEmployeeName" placeholder="Nytt navn" class="border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
+            <button id="addEmployeeButton" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">Legg til</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm" id="employeesTable">
+              <thead>
+                <tr class="bg-gray-200">
+                  <th class="p-2 text-left">Navn</th>
+                  <th class="p-2">Handlinger</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+        <!-- Locations management -->
+        <section class="mb-8">
+          <h3 class="text-lg font-semibold mb-2">Lokasjoner</h3>
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            <input type="text" id="newLocationName" placeholder="Ny lokasjon" class="border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
+            <button id="addLocationButton" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">Legg til</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm" id="locationsTable">
+              <thead>
+                <tr class="bg-gray-200">
+                  <th class="p-2 text-left">Navn</th>
+                  <th class="p-2">Handlinger</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+        <!-- Steps management -->
+        <section class="mb-8">
+          <h3 class="text-lg font-semibold mb-2">Registreringer</h3>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm" id="stepsTable">
+              <thead>
+                <tr class="bg-gray-200">
+                  <th class="p-2 text-left">Dato</th>
+                  <th class="p-2 text-left">Ansatt</th>
+                  <th class="p-2 text-left">Lokasjon</th>
+                  <th class="p-2 text-right">Skritt</th>
+                  <th class="p-2">Handlinger</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <!-- Summary -->
+          <div class="mt-4">
+            <h4 class="text-md font-semibold mb-2">Sammendrag</h4>
+            <div id="summaryTable" class="space-y-2"></div>
+            <!-- Button to download the steps table as an Excel file -->
+            <button id="downloadXlsx" class="mt-4 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">Last ned Excel</button>
+          </div>
+        </section>
+        <!-- Admin users management -->
+        <section class="mb-8">
+          <h3 class="text-lg font-semibold mb-2">Administratorer</h3>
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            <input type="email" id="newAdminEmail" placeholder="Ny admin e-post" class="border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
+            <input type="password" id="newAdminPassword" placeholder="Passord" class="border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
+            <button id="addAdminButton" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">Legg til admin</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm" id="adminsTable">
+              <thead>
+                <tr class="bg-gray-200">
+                  <th class="p-2 text-left">E-post</th>
+                  <th class="p-2">Handlinger</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+    <script>
+      // Helper to show/hide sections
+      function showDashboard() {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+      }
+      function showLogin() {
+        document.getElementById('dashboard').classList.add('hidden');
+        document.getElementById('loginSection').classList.remove('hidden');
+      }
+      // Show login or dashboard based on session
+      async function checkLogin() {
+        const res = await fetch('/admin/check');
+        const data = await res.json();
+        if (data.loggedIn) {
+          showDashboard();
+          loadAllData();
+        } else {
+          showLogin();
+        }
+      }
+      async function login() {
+        const email = document.getElementById('adminEmail').value;
+        const password = document.getElementById('adminPassword').value;
+        const res = await fetch('/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('loginError').textContent = '';
+          showDashboard();
+          loadAllData();
+        } else {
+          document.getElementById('loginError').textContent = data.error || 'Innlogging feilet';
+        }
+      }
+      async function logout() {
+        await fetch('/admin/logout', { method: 'POST' });
+        showLogin();
+      }
+      // Employees CRUD
+      async function loadEmployees() {
+        const res = await fetch('/admin/employees');
+        const employees = await res.json();
+        const tbody = document.querySelector('#employeesTable tbody');
+        tbody.innerHTML = '';
+        employees.forEach(emp => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="p-2">${emp.name}</td>
+            <td class="p-2 text-center">
+              <button class="text-blue-600 hover:underline" onclick="editEmployee(${emp.id}, '${emp.name.replace(/'/g, '&#39;')}')">Rediger</button>
+              <button class="text-red-600 hover:underline ml-2" onclick="deleteEmployee(${emp.id})">Slett</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+      async function addEmployee() {
+        const name = document.getElementById('newEmployeeName').value.trim();
+        if (!name) return;
+        const res = await fetch('/admin/employees', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        document.getElementById('newEmployeeName').value = '';
+        if (res.ok) loadEmployees();
+        else alert('Klarte ikke å legge til ansatt');
+      }
+      async function editEmployee(id, currentName) {
+        const newName = prompt('Nytt navn:', currentName);
+        if (!newName || newName.trim() === currentName) return;
+        const res = await fetch('/admin/employees/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName.trim() }),
+        });
+        if (res.ok) loadEmployees();
+        else alert('Klarte ikke å oppdatere ansatt');
+      }
+      async function deleteEmployee(id) {
+        if (!confirm('Er du sikker på at du vil slette denne ansatte?')) return;
+        const res = await fetch('/admin/employees/' + id, { method: 'DELETE' });
+        if (res.ok) loadEmployees();
+        else alert('Klarte ikke å slette ansatt');
+      }
+      // Locations CRUD
+      async function loadLocations() {
+        const res = await fetch('/admin/locations');
+        const locations = await res.json();
+        const tbody = document.querySelector('#locationsTable tbody');
+        tbody.innerHTML = '';
+        locations.forEach(loc => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="p-2">${loc.name}</td>
+            <td class="p-2 text-center">
+              <button class="text-blue-600 hover:underline" onclick="editLocation(${loc.id}, '${loc.name.replace(/'/g, '&#39;')}')">Rediger</button>
+              <button class="text-red-600 hover:underline ml-2" onclick="deleteLocation(${loc.id})">Slett</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+      async function addLocation() {
+        const name = document.getElementById('newLocationName').value.trim();
+        if (!name) return;
+        const res = await fetch('/admin/locations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        document.getElementById('newLocationName').value = '';
+        if (res.ok) loadLocations();
+        else alert('Klarte ikke å legge til lokasjon');
+      }
+      async function editLocation(id, currentName) {
+        const newName = prompt('Nytt navn:', currentName);
+        if (!newName || newName.trim() === currentName) return;
+        const res = await fetch('/admin/locations/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName.trim() }),
+        });
+        if (res.ok) loadLocations();
+        else alert('Klarte ikke å oppdatere lokasjon');
+      }
+      async function deleteLocation(id) {
+        if (!confirm('Er du sikker på at du vil slette denne lokasjonen?')) return;
+        const res = await fetch('/admin/locations/' + id, { method: 'DELETE' });
+        if (res.ok) loadLocations();
+        else alert('Klarte ikke å slette lokasjon');
+      }
+      // Admin users CRUD
+      async function loadAdmins() {
+        const res = await fetch('/admin/users');
+        const admins = await res.json();
+        const tbody = document.querySelector('#adminsTable tbody');
+        tbody.innerHTML = '';
+        admins.forEach(admin => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="p-2">${admin.email}</td>
+            <td class="p-2 text-center">
+              <button class="text-red-600 hover:underline" onclick="deleteAdmin(${admin.id})">Slett</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+      async function addAdmin() {
+        const email = document.getElementById('newAdminEmail').value.trim();
+        const password = document.getElementById('newAdminPassword').value;
+        if (!email || !password) return;
+        const res = await fetch('/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        document.getElementById('newAdminEmail').value = '';
+        document.getElementById('newAdminPassword').value = '';
+        if (res.ok) loadAdmins();
+        else alert('Klarte ikke å legge til admin');
+      }
+      async function deleteAdmin(id) {
+        if (!confirm('Er du sikker på at du vil slette denne admin-brukeren?')) return;
+        const res = await fetch('/admin/users/' + id, { method: 'DELETE' });
+        if (res.ok) loadAdmins();
+        else alert('Klarte ikke å slette admin');
+      }
+      // Steps CRUD (view and simple edit)
+      async function loadSteps() {
+        const res = await fetch('/admin/steps');
+        const steps = await res.json();
+        const tbody = document.querySelector('#stepsTable tbody');
+        tbody.innerHTML = '';
+        steps.forEach(entry => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="p-2 whitespace-nowrap">${entry.date}</td>
+            <td class="p-2 whitespace-nowrap">${entry.employee_name}</td>
+            <td class="p-2 whitespace-nowrap">${entry.location_name}</td>
+            <td class="p-2 whitespace-nowrap text-right">${entry.steps}</td>
+            <td class="p-2 text-center whitespace-nowrap">
+              <button class="text-blue-600 hover:underline" onclick="editStep(${entry.id}, ${entry.steps})">Rediger</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+        computeSummary(steps);
+      }
+      function computeSummary(steps) {
+        // Compute total and average per location
+        const totals = {};
+        const uniqueEmployees = {};
+        steps.forEach(item => {
+          const loc = item.location_name;
+          totals[loc] = (totals[loc] || 0) + item.steps;
+          if (!uniqueEmployees[loc]) uniqueEmployees[loc] = new Set();
+          uniqueEmployees[loc].add(item.employee_name);
+        });
+        const container = document.getElementById('summaryTable');
+        container.innerHTML = '';
+        Object.keys(totals).forEach(loc => {
+          const total = totals[loc];
+          const avg = total / uniqueEmployees[loc].size;
+          const div = document.createElement('div');
+          div.textContent = `${loc}: total ${total} skritt, snitt ${Math.round(avg)}`;
+          container.appendChild(div);
+        });
+      }
+      async function editStep(id, currentSteps) {
+        const newStepsStr = prompt('Oppgi nytt antall skritt:', currentSteps);
+        if (newStepsStr === null) return;
+        const newSteps = parseInt(newStepsStr, 10);
+        if (isNaN(newSteps) || newSteps < 0) {
+          alert('Ugyldig antall skritt');
+          return;
+        }
+        const res = await fetch('/admin/steps/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ steps: newSteps }),
+        });
+        if (res.ok) loadSteps();
+        else alert('Klarte ikke å oppdatere registrering');
+      }
+      // Load all data
+      function loadAllData() {
+        loadEmployees();
+        loadLocations();
+        loadSteps();
+        loadAdmins();
+      }
+      // Event listeners
+      document.getElementById('loginButton').addEventListener('click', login);
+      document.getElementById('logoutButton').addEventListener('click', logout);
+      document.getElementById('addEmployeeButton').addEventListener('click', addEmployee);
+      document.getElementById('addLocationButton').addEventListener('click', addLocation);
+      document.getElementById('addAdminButton').addEventListener('click', addAdmin);
+      // Initialize
+      checkLogin();
+    </script>
+  </body>
+</html>
